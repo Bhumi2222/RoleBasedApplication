@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: demo
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/dynamic_rbac
+    username: postgres
+    password: Popli@2003
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database: POSTGRESQL
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: "v5d1M9p2q3A7n0LxW4RzP8Vj6YbQ1K9TwX2FuCm0H7gN8BsEdV3"
+    expiration: 18000000
