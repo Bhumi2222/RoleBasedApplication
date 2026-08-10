@@ -1,11 +1,19 @@
 package com.example.demo.repository;
 
-import java.util.UUID;
-
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import com.example.demo.Entity.Permission;
 
-public interface PermissionRepository
-                extends JpaRepository<Permission, UUID> {
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+import java.util.UUID;
+
+public interface PermissionRepository extends JpaRepository<Permission, UUID> {
+
+        boolean existsByPermissionCodeIgnoreCase(String permissionCode);
+
+        Page<Permission> findByIsActive(Character isActive, Pageable pageable);
+
+        Optional<Permission> findByIdAndIsActive(UUID id, Character isActive);
 }
