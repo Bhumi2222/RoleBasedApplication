@@ -11,15 +11,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PermissionDao {
+public class ModuleDao {
 
     private UUID id;
 
-    private String permissionCode;
-
-    private String permissionName;
-
-    private UUID moduleId;
+    private String moduleName;
 
     private Character isActive;
 }
