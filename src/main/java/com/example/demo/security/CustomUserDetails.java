@@ -8,6 +8,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import com.example.demo.Entity.Permission;
 import com.example.demo.Entity.User;
 
 public class CustomUserDetails implements UserDetails {
@@ -31,14 +32,20 @@ public class CustomUserDetails implements UserDetails {
                             "ROLE_" +
                                     user.getRole().getRoleName()));
 
-            // Permissions
             user.getRole()
-                    .getPermissions()
-                    .forEach(permission -> {
+                    .getRolePermissions()
+                    .forEach(rolePermission -> {
 
-                        authorities.add(
-                                new SimpleGrantedAuthority(
-                                        permission.getPermissionCode()));
+                        Permission permission = rolePermission.getPermission();
+
+                        if (permission != null &&
+                                permission.getIsActive() == 'Y' &&
+                                rolePermission.getIsActive() == 'Y') {
+
+                            authorities.add(
+                                    new SimpleGrantedAuthority(
+                                            permission.getPermissionCode()));
+                        }
                     });
         }
 

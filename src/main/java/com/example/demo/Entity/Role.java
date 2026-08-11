@@ -13,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import lombok.AllArgsConstructor;
@@ -42,8 +43,7 @@ public class Role {
     @Column(name = "is_active")
     private Character isActive;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "role_permission", schema = "demo", joinColumns = @JoinColumn(name = "role_id"), inverseJoinColumns = @JoinColumn(name = "permission_id"))
+    @OneToMany(mappedBy = "role", fetch = FetchType.LAZY)
     @Builder.Default
-    private Set<Permission> permissions = new HashSet<>();
+    private Set<RolePermission> rolePermissions = new HashSet<>();
 }

@@ -46,7 +46,4 @@ public class Permission {
     @Column(name = "is_active")
     private Character isActive;
 
-    @ManyToMany(mappedBy = "permissions")
-    @Builder.Default
-    private Set<Role> roles = new HashSet<>();
 }

@@ -15,6 +15,6 @@ import lombok.NoArgsConstructor;
 public class RolePermissionAssignDao {
 
     private UUID roleId;
-
+    private UUID moduleId;
     private List<UUID> permissionIds;
 }

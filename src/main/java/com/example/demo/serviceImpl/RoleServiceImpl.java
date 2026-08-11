@@ -5,6 +5,7 @@ import com.example.demo.dao.RoleDao;
 import com.example.demo.dao.RolePermissionAssignDao;
 import com.example.demo.Entity.Permission;
 import com.example.demo.Entity.Role;
+import com.example.demo.Entity.RolePermission;
 import com.example.demo.repository.PermissionRepository;
 import com.example.demo.repository.RoleRepository;
 import com.example.demo.service.RoleService;
@@ -296,8 +297,26 @@ public class RoleServiceImpl implements RoleService {
                                 permissions.add(permission);
                         }
                 }
-                role.setPermissions(permissions);
+                Set<RolePermission> rolePermissions = new HashSet<>();
+
+                for (Permission permission : permissions) {
+                        RolePermission rolePermission = RolePermission.builder()
+                                        .role(role)
+                                        .module(permission.getModule())
+                                        .permission(permission)
+                                        .isActive('Y')
+                                        .build();
+
+                        rolePermissions.add(rolePermission);
+                }
+
+                role.getRolePermissions().clear();
+                role.getRolePermissions().addAll(rolePermissions);
+
                 Role saved = repository.save(role);
-                return ApiResponseDao.success("Permissions assigned successfully", convertToDao(saved));
+
+                return ApiResponseDao.success(
+                                "Permissions assigned successfully",
+                                convertToDao(saved));
         }
 }

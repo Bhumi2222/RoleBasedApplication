@@ -1,8 +1,8 @@
 package com.example.demo.config;
 
+import com.example.demo.security.DynamicAuthorizationFilter;
 import com.example.demo.security.JwtAuthenticationFilter;
 
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,11 +20,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final DynamicAuthorizationFilter dynamicAuthorizationFilter;
 
         public SecurityConfig(
-                        JwtAuthenticationFilter jwtAuthenticationFilter) {
+                        JwtAuthenticationFilter jwtAuthenticationFilter,
+                        DynamicAuthorizationFilter dynamicAuthorizationFilter) {
 
                 this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+                this.dynamicAuthorizationFilter = dynamicAuthorizationFilter;
         }
 
         @Bean
@@ -43,18 +46,14 @@ public class SecurityConfig {
 
         @Bean
         public SecurityFilterChain securityFilterChain(
-                        HttpSecurity http)
-                        throws Exception {
+                        HttpSecurity http) throws Exception {
 
                 http
                                 .csrf(csrf -> csrf.disable())
 
                                 .authorizeHttpRequests(auth -> auth
-
-                                                .requestMatchers(
-                                                                "/api/auth/**")
+                                                .requestMatchers("/api/auth/**")
                                                 .permitAll()
-
                                                 .anyRequest()
                                                 .authenticated())
 
@@ -63,9 +62,12 @@ public class SecurityConfig {
 
                                 .addFilterBefore(
                                                 jwtAuthenticationFilter,
-                                                UsernamePasswordAuthenticationFilter.class);
+                                                UsernamePasswordAuthenticationFilter.class)
+
+                                .addFilterAfter(
+                                                dynamicAuthorizationFilter,
+                                                JwtAuthenticationFilter.class);
 
                 return http.build();
         }
-
 }
