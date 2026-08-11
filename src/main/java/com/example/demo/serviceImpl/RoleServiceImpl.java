@@ -321,7 +321,7 @@ public class RoleServiceImpl implements RoleService {
                 for (Permission permission : permissions) {
                         RolePermission rolePermission = RolePermission.builder()
                                         .role(role)
-                                        .module(permission.getModule())
+
                                         .permission(permission)
                                         .isActive('Y')
                                         .build();
@@ -462,9 +462,8 @@ public class RoleServiceImpl implements RoleService {
                 }
 
                 List<RolePermission> existing = rolePermissionRepository
-                                .findByRoleIdAndModuleIdAndIsActive(
+                                .findByRole_IdAndIsActive(
                                                 dao.getRoleId(),
-                                                dao.getModuleId(),
                                                 'Y');
 
                 for (RolePermission rolePermission : existing) {
@@ -508,7 +507,6 @@ public class RoleServiceImpl implements RoleService {
 
                                 RolePermission rolePermission = RolePermission.builder()
                                                 .role(role)
-                                                .module(module)
                                                 .permission(permission)
                                                 .isActive('Y')
                                                 .build();
