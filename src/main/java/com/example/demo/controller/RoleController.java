@@ -30,7 +30,6 @@ public class RoleController {
 
         // Create or Update
         @PostMapping("/save")
-        @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApiResponseDao<RoleDao>> saveRole(
                         @RequestParam(required = false) UUID id,
                         @RequestBody RoleDao dao) {
@@ -49,7 +48,6 @@ public class RoleController {
 
         // Get All
         @GetMapping("/list")
-        @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApiResponseDao<Page<RoleDao>>> listRoles(
                         @RequestParam(defaultValue = "0") int page,
                         @RequestParam(defaultValue = "20") int size,
@@ -79,7 +77,6 @@ public class RoleController {
 
         // Delete
         @PostMapping("/delete")
-        @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApiResponseDao<Void>> deleteRole(
                         @RequestParam UUID id) {
 
@@ -94,7 +91,6 @@ public class RoleController {
 
         // Get By Id
         @GetMapping("/getById")
-        @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApiResponseDao<RoleDao>> getRoleById(
                         @RequestParam(required = false) UUID id,
                         @RequestParam(required = false) String activeFlag) {
@@ -123,7 +119,6 @@ public class RoleController {
         }
 
         @GetMapping("/permissions")
-        @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApiResponseDao<RolePermissionViewDao>> getRolePermissions(
                         @RequestParam(required = false) UUID roleId) {
 
@@ -135,7 +130,6 @@ public class RoleController {
         }
 
         @PostMapping("/permissions/update")
-        @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApiResponseDao<RolePermissionViewDao>> updateRolePermissions(
                         @RequestBody RolePermissionAssignDao dao) {
 

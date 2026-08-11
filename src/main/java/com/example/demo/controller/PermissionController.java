@@ -23,7 +23,6 @@ public class PermissionController {
     private final PermissionService service;
 
     @PostMapping("/save")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponseDao<PermissionDao>> savePermission(
             @RequestParam(required = false) UUID id,
             @RequestBody PermissionDao dao) {
@@ -38,7 +37,6 @@ public class PermissionController {
     }
 
     @GetMapping("/list")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponseDao<Page<PermissionDao>>> listPermissions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -55,7 +53,6 @@ public class PermissionController {
     }
 
     @PostMapping("/delete")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponseDao<Void>> deletePermission(
             @RequestParam UUID id) {
 
@@ -67,7 +64,6 @@ public class PermissionController {
     }
 
     @GetMapping("/getById")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponseDao<PermissionDao>> getPermissionById(
             @RequestParam(required = false) UUID id,
             @RequestParam(required = false) String activeFlag) {

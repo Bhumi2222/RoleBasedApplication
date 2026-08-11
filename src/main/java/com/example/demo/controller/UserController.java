@@ -29,7 +29,6 @@ public class UserController {
 
         // Create or Update
         @PostMapping("/save")
-        @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApiResponseDao<UserDao>> saveUser(
                         @RequestParam(required = false) UUID id,
                         @RequestBody UserDao dao) {
@@ -49,7 +48,6 @@ public class UserController {
 
         // Get All
         @GetMapping("/list")
-        @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApiResponseDao<Page<UserDao>>> listUsers(
                         @RequestParam(defaultValue = "0") int page,
                         @RequestParam(defaultValue = "20") int size,
@@ -79,7 +77,6 @@ public class UserController {
 
         // Delete
         @PostMapping("/delete")
-        @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApiResponseDao<Void>> deleteUser(
                         @RequestParam UUID id) {
 
@@ -96,7 +93,6 @@ public class UserController {
 
         // Get By ID
         @GetMapping("/getById")
-        @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApiResponseDao<UserDao>> getUserById(
                         @RequestParam(required = false) UUID id,
                         @RequestParam(required = false) String activeFlag) {
@@ -123,7 +119,6 @@ public class UserController {
         }
 
         @GetMapping("/details")
-        @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApiResponseDao<UserDetailsDao>> getUserDetails(
                         @RequestParam UUID id) {
 

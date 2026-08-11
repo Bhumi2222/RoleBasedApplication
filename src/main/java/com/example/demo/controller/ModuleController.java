@@ -26,7 +26,6 @@ public class ModuleController {
     private final ModuleService service;
 
     @PostMapping("/save")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponseDao<ModuleDao>> saveModule(
             @RequestParam(required = false) UUID id,
             @RequestBody ModuleDao dao) {
@@ -41,7 +40,6 @@ public class ModuleController {
     }
 
     @GetMapping("/list")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponseDao<Page<ModuleDao>>> listModules(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -60,7 +58,6 @@ public class ModuleController {
     }
 
     @PostMapping("/delete")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponseDao<Void>> deleteModule(
             @RequestParam UUID id) {
 
@@ -72,7 +69,6 @@ public class ModuleController {
     }
 
     @GetMapping("/getById")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponseDao<ModuleDao>> getModuleById(
             @RequestParam(required = false) UUID id,
             @RequestParam(required = false) String activeFlag) {
