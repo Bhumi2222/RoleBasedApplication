@@ -3,6 +3,7 @@ package com.example.demo.service;
 import com.example.demo.dao.ApiResponseDao;
 import com.example.demo.dao.RoleDao;
 import com.example.demo.dao.RolePermissionAssignDao;
+import com.example.demo.dao.RolePermissionViewDao;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,4 +25,9 @@ public interface RoleService {
                         String activeFlag);
 
         ApiResponseDao<RoleDao> assignPermissions(RolePermissionAssignDao dao);
+
+        ApiResponseDao<RolePermissionViewDao> getRolePermissions(UUID roleId);
+
+        ApiResponseDao<RolePermissionViewDao> updateRolePermissions(
+                        RolePermissionAssignDao dao);
 }

@@ -3,10 +3,15 @@ package com.example.demo.serviceImpl;
 import com.example.demo.dao.ApiResponseDao;
 import com.example.demo.dao.RoleDao;
 import com.example.demo.dao.RolePermissionAssignDao;
+import com.example.demo.dao.RolePermissionItemDao;
+import com.example.demo.dao.RolePermissionModuleDao;
+import com.example.demo.dao.RolePermissionViewDao;
 import com.example.demo.Entity.Permission;
 import com.example.demo.Entity.Role;
 import com.example.demo.Entity.RolePermission;
+import com.example.demo.repository.ModuleRepository;
 import com.example.demo.repository.PermissionRepository;
+import com.example.demo.repository.RolePermissionRepository;
 import com.example.demo.repository.RoleRepository;
 import com.example.demo.service.RoleService;
 
@@ -17,10 +22,22 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
+import com.example.demo.Entity.Module;
+import com.example.demo.Entity.Permission;
+import com.example.demo.Entity.Role;
+import com.example.demo.Entity.RolePermission;
+
+import com.example.demo.dao.RolePermissionItemDao;
+import com.example.demo.dao.RolePermissionModuleDao;
+import com.example.demo.dao.RolePermissionViewDao;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +46,8 @@ public class RoleServiceImpl implements RoleService {
 
         private final RoleRepository repository;
         private final PermissionRepository permissionRepository;
+        private final RolePermissionRepository rolePermissionRepository;
+        private final ModuleRepository moduleRepository;
 
         // Create or Update
         @Override
@@ -318,5 +337,186 @@ public class RoleServiceImpl implements RoleService {
                 return ApiResponseDao.success(
                                 "Permissions assigned successfully",
                                 convertToDao(saved));
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public ApiResponseDao<RolePermissionViewDao> getRolePermissions(UUID roleId) {
+
+                Role role = null;
+
+                if (roleId != null) {
+                        role = repository.findById(roleId).orElse(null);
+
+                        if (role == null) {
+                                return ApiResponseDao.error(
+                                                404,
+                                                "Role not found",
+                                                "ROLE_NOT_FOUND");
+                        }
+                }
+
+                final Set<UUID> assignedPermissionIds;
+
+                if (roleId != null) {
+                        List<RolePermission> assignedPermissions = rolePermissionRepository.findByRoleIdAndIsActive(
+                                        roleId, 'Y');
+
+                        assignedPermissionIds = assignedPermissions.stream()
+                                        .map(rolePermission -> rolePermission.getPermission().getId())
+                                        .collect(Collectors.toSet());
+                } else {
+                        assignedPermissionIds = new HashSet<>();
+                }
+
+                List<Module> modules = moduleRepository.findByIsActive('Y');
+
+                List<RolePermissionModuleDao> moduleList = new ArrayList<>();
+
+                for (Module module : modules) {
+
+                        List<Permission> permissions = permissionRepository.findByModule_IdAndIsActive(
+                                        module.getId(),
+                                        'Y');
+
+                        List<RolePermissionItemDao> permissionList = permissions.stream()
+                                        .map(permission -> RolePermissionItemDao.builder()
+                                                        .permissionId(permission.getId())
+                                                        .permissionCode(permission.getPermissionCode())
+                                                        .permissionName(permission.getPermissionName())
+                                                        .assigned(
+                                                                        assignedPermissionIds.contains(
+                                                                                        permission.getId()))
+                                                        .build())
+                                        .collect(Collectors.toList());
+
+                        moduleList.add(
+                                        RolePermissionModuleDao.builder()
+                                                        .moduleId(module.getId())
+                                                        .moduleName(module.getModuleName())
+                                                        .permissions(permissionList)
+                                                        .build());
+                }
+
+                RolePermissionViewDao response = RolePermissionViewDao.builder()
+                                .roleId(role != null ? role.getId() : null)
+                                .roleName(role != null ? role.getRoleName() : null)
+                                .modules(moduleList)
+                                .build();
+
+                return ApiResponseDao.success(
+                                "Modules and permissions fetched successfully",
+                                response);
+        }
+
+        @Override
+        public ApiResponseDao<RolePermissionViewDao> updateRolePermissions(
+                        RolePermissionAssignDao dao) {
+
+                if (dao.getRoleId() == null) {
+                        return ApiResponseDao.error(
+                                        400,
+                                        "Role ID is required",
+                                        "ROLE_ID_REQUIRED");
+                }
+
+                if (dao.getModuleId() == null) {
+                        return ApiResponseDao.error(
+                                        400,
+                                        "Module ID is required",
+                                        "MODULE_ID_REQUIRED");
+                }
+
+                Role role = repository.findById(dao.getRoleId()).orElse(null);
+
+                if (role == null) {
+                        return ApiResponseDao.error(
+                                        404,
+                                        "Role not found",
+                                        "ROLE_NOT_FOUND");
+                }
+
+                if ('N' == role.getIsActive()) {
+                        return ApiResponseDao.error(
+                                        400,
+                                        "Role is inactive",
+                                        "ROLE_INACTIVE");
+                }
+
+                Module module = moduleRepository
+                                .findById(dao.getModuleId())
+                                .orElse(null);
+
+                if (module == null) {
+                        return ApiResponseDao.error(
+                                        404,
+                                        "Module not found",
+                                        "MODULE_NOT_FOUND");
+                }
+
+                if ('N' == module.getIsActive()) {
+                        return ApiResponseDao.error(
+                                        400,
+                                        "Module is inactive",
+                                        "MODULE_INACTIVE");
+                }
+
+                List<RolePermission> existing = rolePermissionRepository
+                                .findByRoleIdAndModuleIdAndIsActive(
+                                                dao.getRoleId(),
+                                                dao.getModuleId(),
+                                                'Y');
+
+                for (RolePermission rolePermission : existing) {
+                        rolePermission.setIsActive('N');
+                }
+
+                rolePermissionRepository.saveAll(existing);
+
+                if (dao.getPermissionIds() != null &&
+                                !dao.getPermissionIds().isEmpty()) {
+
+                        for (UUID permissionId : dao.getPermissionIds()) {
+
+                                Permission permission = permissionRepository
+                                                .findById(permissionId)
+                                                .orElse(null);
+
+                                if (permission == null) {
+                                        return ApiResponseDao.error(
+                                                        404,
+                                                        "Permission not found: " + permissionId,
+                                                        "PERMISSION_NOT_FOUND");
+                                }
+
+                                if ('N' == permission.getIsActive()) {
+                                        return ApiResponseDao.error(
+                                                        400,
+                                                        "Permission is inactive",
+                                                        "PERMISSION_INACTIVE");
+                                }
+
+                                if (permission.getModule() == null ||
+                                                !permission.getModule().getId()
+                                                                .equals(dao.getModuleId())) {
+
+                                        return ApiResponseDao.error(
+                                                        400,
+                                                        "Permission does not belong to selected module",
+                                                        "INVALID_PERMISSION_MODULE");
+                                }
+
+                                RolePermission rolePermission = RolePermission.builder()
+                                                .role(role)
+                                                .module(module)
+                                                .permission(permission)
+                                                .isActive('Y')
+                                                .build();
+
+                                rolePermissionRepository.save(rolePermission);
+                        }
+                }
+
+                return getRolePermissions(dao.getRoleId());
         }
 }

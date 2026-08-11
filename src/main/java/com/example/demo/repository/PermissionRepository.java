@@ -19,4 +19,6 @@ public interface PermissionRepository extends JpaRepository<Permission, UUID> {
         List<Permission> findAllByIsActive(Character isActive);
 
         Optional<Permission> findByIdAndIsActive(UUID id, Character isActive);
+
+        List<Permission> findByModule_IdAndIsActive(UUID moduleId, Character isActive);
 }
