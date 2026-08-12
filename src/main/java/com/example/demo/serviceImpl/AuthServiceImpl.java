@@ -3,9 +3,13 @@ package com.example.demo.serviceImpl;
 import com.example.demo.dao.LoginDao;
 import com.example.demo.dao.LoginResponseDao;
 import com.example.demo.Entity.User;
+import com.example.demo.repository.RolePermissionRepository;
 import com.example.demo.repository.UserRepository;
+import com.example.demo.security.CustomUserDetails;
 import com.example.demo.security.JwtService;
 import com.example.demo.service.AuthService;
+
+import java.util.Set;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,17 +25,20 @@ public class AuthServiceImpl
         private final UserRepository userRepository;
 
         private final JwtService jwtService;
+        private final RolePermissionRepository rolePermissionRepository;
 
         public AuthServiceImpl(
                         AuthenticationManager authenticationManager,
                         UserRepository userRepository,
-                        JwtService jwtService) {
+                        JwtService jwtService,
+                        RolePermissionRepository rolePermissionRepository) {
 
                 this.authenticationManager = authenticationManager;
 
                 this.userRepository = userRepository;
 
                 this.jwtService = jwtService;
+                this.rolePermissionRepository = rolePermissionRepository;
         }
 
         @Override
@@ -48,7 +55,11 @@ public class AuthServiceImpl
                                                 loginDao.getUsername())
                                 .orElseThrow();
 
-                UserDetails userDetails = new com.example.demo.security.CustomUserDetails(user);
+                Set<String> permissionCodes = rolePermissionRepository
+                                .findPermissionCodesByRoleId(
+                                                user.getRole().getId());
+
+                UserDetails userDetails = new CustomUserDetails(user, permissionCodes);
 
                 String token = jwtService.generateToken(
                                 userDetails);
@@ -56,7 +67,7 @@ public class AuthServiceImpl
                 return new LoginResponseDao(
                                 token,
                                 user.getUsername(),
-                                user.getRole()
-                                                .getRoleName());
+                                user.getRole().getRoleName(),
+                                permissionCodes.stream().toList());
         }
 }

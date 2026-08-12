@@ -1,5 +1,6 @@
 package com.example.demo.Entity;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -46,4 +47,10 @@ public class Role {
     @OneToMany(mappedBy = "role", fetch = FetchType.LAZY)
     @Builder.Default
     private Set<RolePermission> rolePermissions = new HashSet<>();
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }
