@@ -421,13 +421,6 @@ public class RoleServiceImpl implements RoleService {
                                         "ROLE_ID_REQUIRED");
                 }
 
-                if (dao.getModuleId() == null) {
-                        return ApiResponseDao.error(
-                                        400,
-                                        "Module ID is required",
-                                        "MODULE_ID_REQUIRED");
-                }
-
                 Role role = repository.findById(dao.getRoleId()).orElse(null);
 
                 if (role == null) {
