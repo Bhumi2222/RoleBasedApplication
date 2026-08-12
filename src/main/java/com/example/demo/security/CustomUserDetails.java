@@ -8,15 +8,21 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import com.example.demo.Entity.Permission;
 import com.example.demo.Entity.User;
 
 public class CustomUserDetails implements UserDetails {
 
     private final User user;
+    private final Set<String> permissionCodes;
 
-    public CustomUserDetails(User user) {
+    public CustomUserDetails(
+            User user,
+            Set<String> permissionCodes) {
+
         this.user = user;
+        this.permissionCodes = permissionCodes != null
+                ? permissionCodes
+                : Set.of();
     }
 
     @Override
@@ -26,27 +32,26 @@ public class CustomUserDetails implements UserDetails {
 
         if (user.getRole() != null) {
 
-            // Role
+            String roleName = user.getRole().getRoleName();
+            String normalizedRole = roleName == null
+                    ? null
+                    : roleName.trim().replaceFirst("^ROLE_", "");
+
+            if (normalizedRole != null && !normalizedRole.isBlank()) {
+                authorities.add(
+                        new SimpleGrantedAuthority(
+                                "ROLE_" + normalizedRole));
+                authorities.add(
+                        new SimpleGrantedAuthority(normalizedRole));
+            }
+        }
+
+        // Permission authorities
+        for (String permissionCode : permissionCodes) {
+
             authorities.add(
                     new SimpleGrantedAuthority(
-                            "ROLE_" +
-                                    user.getRole().getRoleName()));
-
-            user.getRole()
-                    .getRolePermissions()
-                    .forEach(rolePermission -> {
-
-                        Permission permission = rolePermission.getPermission();
-
-                        if (permission != null &&
-                                permission.getIsActive() == 'Y' &&
-                                rolePermission.getIsActive() == 'Y') {
-
-                            authorities.add(
-                                    new SimpleGrantedAuthority(
-                                            permission.getPermissionCode()));
-                        }
-                    });
+                            permissionCode));
         }
 
         return authorities;
