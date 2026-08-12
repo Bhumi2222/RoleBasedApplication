@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -32,13 +33,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.example.demo.Entity.Module;
-import com.example.demo.Entity.Permission;
-import com.example.demo.Entity.Role;
-import com.example.demo.Entity.RolePermission;
-
-import com.example.demo.dao.RolePermissionItemDao;
-import com.example.demo.dao.RolePermissionModuleDao;
-import com.example.demo.dao.RolePermissionViewDao;
 
 @Service
 @RequiredArgsConstructor
@@ -411,6 +405,7 @@ public class RoleServiceImpl implements RoleService {
         }
 
         @Override
+        @Transactional
         public ApiResponseDao<RolePermissionViewDao> updateRolePermissions(
                         RolePermissionAssignDao dao) {
 
@@ -437,80 +432,114 @@ public class RoleServiceImpl implements RoleService {
                                         "ROLE_INACTIVE");
                 }
 
-                Module module = moduleRepository
-                                .findById(dao.getModuleId())
-                                .orElse(null);
+                /*
+                 * Get ALL role-permission records.
+                 *
+                 * Important:
+                 * Do NOT filter by isActive = 'Y' here.
+                 *
+                 * We need inactive records too, because they may need
+                 * to be activated again.
+                 */
+                List<RolePermission> existing = rolePermissionRepository.findByRole_Id(
+                                dao.getRoleId());
 
-                if (module == null) {
-                        return ApiResponseDao.error(
-                                        404,
-                                        "Module not found",
-                                        "MODULE_NOT_FOUND");
-                }
+                /*
+                 * Convert selected permission IDs into a Set.
+                 *
+                 * This makes contains() fast and also removes duplicate IDs
+                 * from the request.
+                 */
+                Set<UUID> selectedPermissionIds = dao.getPermissionIds() == null
+                                ? Collections.emptySet()
+                                : new HashSet<>(dao.getPermissionIds());
 
-                if ('N' == module.getIsActive()) {
-                        return ApiResponseDao.error(
-                                        400,
-                                        "Module is inactive",
-                                        "MODULE_INACTIVE");
-                }
+                /*
+                 * Map existing permissions by permission ID.
+                 *
+                 * Example:
+                 *
+                 * ROLE_VIEW -> existing RolePermission
+                 * ROLE_DELETE -> existing RolePermission
+                 */
+                Map<UUID, RolePermission> existingMap = existing.stream()
+                                .collect(Collectors.toMap(
+                                                rp -> rp.getPermission().getId(),
+                                                rp -> rp));
 
-                List<RolePermission> existing = rolePermissionRepository
-                                .findByRole_IdAndIsActive(
-                                                dao.getRoleId(),
-                                                'Y');
+                /*
+                 * Process every selected permission.
+                 */
+                for (UUID permissionId : selectedPermissionIds) {
 
-                for (RolePermission rolePermission : existing) {
-                        rolePermission.setIsActive('N');
-                }
+                        Permission permission = permissionRepository
+                                        .findById(permissionId)
+                                        .orElse(null);
 
-                rolePermissionRepository.saveAll(existing);
+                        if (permission == null) {
+                                return ApiResponseDao.error(
+                                                404,
+                                                "Permission not found: " + permissionId,
+                                                "PERMISSION_NOT_FOUND");
+                        }
 
-                if (dao.getPermissionIds() != null &&
-                                !dao.getPermissionIds().isEmpty()) {
+                        if ('N' == permission.getIsActive()) {
+                                return ApiResponseDao.error(
+                                                400,
+                                                "Permission is inactive: " + permissionId,
+                                                "PERMISSION_INACTIVE");
+                        }
 
-                        for (UUID permissionId : dao.getPermissionIds()) {
+                        /*
+                         * Check whether this role-permission combination
+                         * already exists.
+                         */
+                        RolePermission rolePermission = existingMap.get(permissionId);
 
-                                Permission permission = permissionRepository
-                                                .findById(permissionId)
-                                                .orElse(null);
+                        if (rolePermission != null) {
 
-                                if (permission == null) {
-                                        return ApiResponseDao.error(
-                                                        404,
-                                                        "Permission not found: " + permissionId,
-                                                        "PERMISSION_NOT_FOUND");
-                                }
+                                /*
+                                 * Already exists.
+                                 *
+                                 * Just reactivate it.
+                                 */
+                                rolePermission.setIsActive('Y');
 
-                                if ('N' == permission.getIsActive()) {
-                                        return ApiResponseDao.error(
-                                                        400,
-                                                        "Permission is inactive",
-                                                        "PERMISSION_INACTIVE");
-                                }
+                        } else {
 
-                                if (permission.getModule() == null ||
-                                                !permission.getModule().getId()
-                                                                .equals(dao.getModuleId())) {
-
-                                        return ApiResponseDao.error(
-                                                        400,
-                                                        "Permission does not belong to selected module",
-                                                        "INVALID_PERMISSION_MODULE");
-                                }
-
-                                RolePermission rolePermission = RolePermission.builder()
+                                /*
+                                 * Doesn't exist at all.
+                                 *
+                                 * Create a new record.
+                                 */
+                                rolePermission = RolePermission.builder()
                                                 .role(role)
                                                 .permission(permission)
                                                 .isActive('Y')
                                                 .build();
 
-                                rolePermissionRepository.save(rolePermission);
+                                existing.add(rolePermission);
                         }
                 }
 
+                /*
+                 * Any existing permission that was NOT selected
+                 * should become inactive.
+                 */
+                for (RolePermission rolePermission : existing) {
+
+                        UUID permissionId = rolePermission.getPermission().getId();
+
+                        if (!selectedPermissionIds.contains(permissionId)) {
+                                rolePermission.setIsActive('N');
+                        }
+                }
+
+                /*
+                 * Save everything together.
+                 */
+                rolePermissionRepository.saveAll(existing);
+
                 return getRolePermissions(dao.getRoleId());
-
         }
-
 }
