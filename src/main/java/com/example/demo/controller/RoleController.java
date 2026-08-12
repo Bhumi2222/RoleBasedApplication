@@ -26,110 +26,111 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class RoleController {
 
-    private final RoleService service;
+        private final RoleService service;
 
-    // Create or Update
-    @PostMapping("/save")
-    public ResponseEntity<ApiResponseDao<RoleDao>> saveRole(
-            @RequestParam(required = false) UUID id,
-            @RequestBody RoleDao dao) {
+        // Create or Update
+        @PostMapping("/save")
+        public ResponseEntity<ApiResponseDao<RoleDao>> saveRole(
+                        @RequestParam(required = false) UUID id,
+                        @RequestBody RoleDao dao) {
 
-        dao.setId(id);
+                dao.setId(id);
 
-        log.info("Save role request - Role Name: {}",
-                dao.getRoleName());
+                log.info("Save role request - Role Name: {}",
+                                dao.getRoleName());
 
-        ApiResponseDao<RoleDao> response = service.saveOrUpdate(dao);
+                ApiResponseDao<RoleDao> response = service.saveOrUpdate(dao);
 
-        return ResponseEntity
-                .status(response.getStatus())
-                .body(response);
-    }
-
-    // Get All
-    @GetMapping("/list")
-    public ResponseEntity<ApiResponseDao<Page<RoleDao>>> listRoles(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String activeFlag) {
-
-        Pageable pageable = PageRequest.of(
-                page,
-                size,
-                Sort.by(Sort.Direction.DESC,
-                        "createdAt"));
-
-        ApiResponseDao<Page<RoleDao>> response = service.listRoles(
-                pageable,
-                activeFlag);
-
-        return ResponseEntity
-                .status(response.getStatus())
-                .body(response);
-    }
-
-    // Delete
-    @PostMapping("/delete")
-    public ResponseEntity<ApiResponseDao<Void>> deleteRole(
-            @RequestParam UUID id) {
-
-        log.info("Delete role request - Id: {}", id);
-
-        ApiResponseDao<Void> response = service.deleteRole(id);
-
-        return ResponseEntity
-                .status(response.getStatus())
-                .body(response);
-    }
-
-    // Get By Id
-    @GetMapping("/getById")
-    public ResponseEntity<ApiResponseDao<RoleDao>> getRoleById(
-            @RequestParam(required = false) UUID id,
-            @RequestParam(required = false) String activeFlag) {
-
-        if (id == null) {
-
-            ApiResponseDao<RoleDao> response = ApiResponseDao.error(
-                    400,
-                    "Id parameter is required",
-                    "MISSING_ID");
-
-            return ResponseEntity
-                    .status(400)
-                    .body(response);
+                return ResponseEntity
+                                .status(response.getStatus())
+                                .body(response);
         }
 
-        log.info("Get role by id request - Id: {}", id);
+        // Get All
+        @GetMapping("/list")
+        public ResponseEntity<ApiResponseDao<Page<RoleDao>>> listRoles(
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "20") int size,
+                        @RequestParam(required = false) String activeFlag) {
 
-        ApiResponseDao<RoleDao> response = service.getById(
-                id,
-                activeFlag);
+                Pageable pageable = PageRequest.of(
+                                page,
+                                size,
+                                Sort.by(Sort.Direction.DESC,
+                                                "createdAt"));
 
-        return ResponseEntity
-                .status(response.getStatus())
-                .body(response);
-    }
+                ApiResponseDao<Page<RoleDao>> response = service.listRoles(
+                                pageable,
+                                activeFlag);
 
-    @GetMapping("/permissions")
-    public ResponseEntity<ApiResponseDao<RolePermissionViewDao>> getRolePermissions(
-            @RequestParam(required = false) UUID roleId) {
+                return ResponseEntity
+                                .status(response.getStatus())
+                                .body(response);
+        }
 
-        ApiResponseDao<RolePermissionViewDao> response = service.getRolePermissions(roleId);
+        // Delete
+        @PostMapping("/delete")
+        public ResponseEntity<ApiResponseDao<Void>> deleteRole(
+                        @RequestParam UUID id) {
 
-        return ResponseEntity
-                .status(response.getStatus())
-                .body(response);
-    }
+                log.info("Delete role request - Id: {}", id);
 
-    @PostMapping("/permissions/update")
-    public ResponseEntity<ApiResponseDao<RolePermissionViewDao>> updateRolePermissions(
-            @RequestBody RolePermissionAssignDao dao) {
+                ApiResponseDao<Void> response = service.deleteRole(id);
 
-        ApiResponseDao<RolePermissionViewDao> response = service.updateRolePermissions(dao);
+                return ResponseEntity
+                                .status(response.getStatus())
+                                .body(response);
+        }
 
-        return ResponseEntity
-                .status(response.getStatus())
-                .body(response);
-    }
+        // Get By Id
+        @GetMapping("/getById")
+        public ResponseEntity<ApiResponseDao<RoleDao>> getRoleById(
+                        @RequestParam(required = false) UUID id,
+                        @RequestParam(required = false) String activeFlag) {
+
+                if (id == null) {
+
+                        ApiResponseDao<RoleDao> response = ApiResponseDao.error(
+                                        400,
+                                        "Id parameter is required",
+                                        "MISSING_ID");
+
+                        return ResponseEntity
+                                        .status(400)
+                                        .body(response);
+                }
+
+                log.info("Get role by id request - Id: {}", id);
+
+                ApiResponseDao<RoleDao> response = service.getById(
+                                id,
+                                activeFlag);
+
+                return ResponseEntity
+                                .status(response.getStatus())
+                                .body(response);
+        }
+
+        @GetMapping("/permissions")
+        public ResponseEntity<ApiResponseDao<RolePermissionViewDao>> getRolePermissions(
+                        @RequestParam(required = false) UUID roleId) {
+
+                ApiResponseDao<RolePermissionViewDao> response = service.getRolePermissions(roleId);
+
+                return ResponseEntity
+                                .status(response.getStatus())
+                                .body(response);
+        }
+
+        @PostMapping("/permissions/update")
+        public ResponseEntity<ApiResponseDao<RolePermissionViewDao>> updateRolePermissions(
+                        @RequestBody RolePermissionAssignDao dao) {
+
+                ApiResponseDao<RolePermissionViewDao> response = service.updateRolePermissions(dao);
+
+                return ResponseEntity
+                                .status(response.getStatus())
+                                .body(response);
+        }
+
 }

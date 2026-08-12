@@ -30,4 +30,5 @@ public interface RoleService {
 
         ApiResponseDao<RolePermissionViewDao> updateRolePermissions(
                         RolePermissionAssignDao dao);
+
 }
