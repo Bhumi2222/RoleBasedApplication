@@ -36,7 +36,7 @@ public class ApiPermission {
     @Column(name = "http_method", nullable = false)
     private String httpMethod;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "permission_id", nullable = false)
     private Permission permission;
 

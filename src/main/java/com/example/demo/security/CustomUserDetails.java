@@ -3,6 +3,7 @@ package com.example.demo.security;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -55,6 +56,10 @@ public class CustomUserDetails implements UserDetails {
         }
 
         return authorities;
+    }
+
+    public UUID getUserId() {
+        return user.getId();
     }
 
     @Override

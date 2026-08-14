@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.dao.LoginDao;
 import com.example.demo.dao.LoginResponseDao;
+import com.example.demo.dao.UserDao;
 import com.example.demo.service.AuthService;
 
 import org.springframework.http.ResponseEntity;
@@ -25,4 +26,12 @@ public class AuthController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserDao> getCurrentUser() {
+
+        UserDao user = authService.getCurrentUser();
+
+        return ResponseEntity.ok(user);
+    }   
 }

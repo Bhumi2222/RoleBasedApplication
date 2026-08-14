@@ -13,6 +13,8 @@ import com.example.demo.repository.ModuleRepository;
 import com.example.demo.repository.PermissionRepository;
 import com.example.demo.repository.RolePermissionRepository;
 import com.example.demo.repository.RoleRepository;
+import com.example.demo.repository.UserRepository;
+import com.example.demo.security.SseService;
 import com.example.demo.service.RoleService;
 
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.example.demo.Entity.Module;
 
@@ -43,6 +47,9 @@ public class RoleServiceImpl implements RoleService {
         private final PermissionRepository permissionRepository;
         private final RolePermissionRepository rolePermissionRepository;
         private final ModuleRepository moduleRepository;
+        private final UserRepository userRepository;
+        private final SseService sseService;
+
 
         // Create or Update
         @Override
@@ -409,23 +416,43 @@ public class RoleServiceImpl implements RoleService {
         public ApiResponseDao<RolePermissionViewDao> updateRolePermissions(
                         RolePermissionAssignDao dao) {
 
+                /*
+                 * ---------------------------------------------------------
+                 * 1. Validate role ID
+                 * ---------------------------------------------------------
+                 */
                 if (dao.getRoleId() == null) {
+
                         return ApiResponseDao.error(
                                         400,
                                         "Role ID is required",
                                         "ROLE_ID_REQUIRED");
                 }
 
-                Role role = repository.findById(dao.getRoleId()).orElse(null);
+                /*
+                 * ---------------------------------------------------------
+                 * 2. Find role
+                 * ---------------------------------------------------------
+                 */
+                Role role = repository
+                                .findById(dao.getRoleId())
+                                .orElse(null);
 
                 if (role == null) {
+
                         return ApiResponseDao.error(
                                         404,
                                         "Role not found",
                                         "ROLE_NOT_FOUND");
                 }
 
+                /*
+                 * ---------------------------------------------------------
+                 * 3. Check role active
+                 * ---------------------------------------------------------
+                 */
                 if ('N' == role.getIsActive()) {
+
                         return ApiResponseDao.error(
                                         400,
                                         "Role is inactive",
@@ -433,84 +460,107 @@ public class RoleServiceImpl implements RoleService {
                 }
 
                 /*
-                 * Get ALL role-permission records.
+                 * ---------------------------------------------------------
+                 * 4. Find all users assigned to this role
                  *
-                 * Important:
-                 * Do NOT filter by isActive = 'Y' here.
-                 *
-                 * We need inactive records too, because they may need
-                 * to be activated again.
+                 * We need these users because a role permission change
+                 * affects every user having this role.
+                 * ---------------------------------------------------------
                  */
-                List<RolePermission> existing = rolePermissionRepository.findByRole_Id(
+                List<UUID> affectedUserIds = userRepository.findUserIdsByRoleId(
                                 dao.getRoleId());
 
+                System.out.println(
+                                "Users affected by role permission change: "
+                                                + affectedUserIds.size());
+
                 /*
-                 * Convert selected permission IDs into a Set.
+                 * ---------------------------------------------------------
+                 * 5. Get ALL existing role-permission records
                  *
-                 * This makes contains() fast and also removes duplicate IDs
-                 * from the request.
+                 * We intentionally include inactive records.
+                 * ---------------------------------------------------------
+                 */
+                List<RolePermission> existing = rolePermissionRepository
+                                .findByRole_Id(
+                                                dao.getRoleId());
+
+                /*
+                 * ---------------------------------------------------------
+                 * 6. Convert selected permission IDs to Set
+                 * ---------------------------------------------------------
                  */
                 Set<UUID> selectedPermissionIds = dao.getPermissionIds() == null
                                 ? Collections.emptySet()
-                                : new HashSet<>(dao.getPermissionIds());
+                                : new HashSet<>(
+                                                dao.getPermissionIds());
 
                 /*
-                 * Map existing permissions by permission ID.
-                 *
-                 * Example:
-                 *
-                 * ROLE_VIEW -> existing RolePermission
-                 * ROLE_DELETE -> existing RolePermission
+                 * ---------------------------------------------------------
+                 * 7. Map existing permissions by permission ID
+                 * ---------------------------------------------------------
                  */
                 Map<UUID, RolePermission> existingMap = existing.stream()
-                                .collect(Collectors.toMap(
-                                                rp -> rp.getPermission().getId(),
-                                                rp -> rp));
+                                .collect(
+                                                Collectors.toMap(
+                                                                rp -> rp
+                                                                                .getPermission()
+                                                                                .getId(),
+                                                                rp -> rp));
 
                 /*
-                 * Process every selected permission.
+                 * ---------------------------------------------------------
+                 * 8. Process selected permissions
+                 * ---------------------------------------------------------
                  */
                 for (UUID permissionId : selectedPermissionIds) {
 
+                        /*
+                         * Find permission.
+                         */
                         Permission permission = permissionRepository
                                         .findById(permissionId)
                                         .orElse(null);
 
                         if (permission == null) {
+
                                 return ApiResponseDao.error(
                                                 404,
-                                                "Permission not found: " + permissionId,
+                                                "Permission not found: "
+                                                                + permissionId,
                                                 "PERMISSION_NOT_FOUND");
                         }
 
+                        /*
+                         * Check permission active.
+                         */
                         if ('N' == permission.getIsActive()) {
+
                                 return ApiResponseDao.error(
                                                 400,
-                                                "Permission is inactive: " + permissionId,
+                                                "Permission is inactive: "
+                                                                + permissionId,
                                                 "PERMISSION_INACTIVE");
                         }
 
                         /*
-                         * Check whether this role-permission combination
-                         * already exists.
+                         * Check if role-permission already exists.
                          */
                         RolePermission rolePermission = existingMap.get(permissionId);
 
                         if (rolePermission != null) {
 
                                 /*
-                                 * Already exists.
+                                 * Existing record.
                                  *
-                                 * Just reactivate it.
+                                 * Reactivate it.
                                  */
                                 rolePermission.setIsActive('Y');
 
                         } else {
 
                                 /*
-                                 * Doesn't exist at all.
-                                 *
-                                 * Create a new record.
+                                 * Create new role-permission record.
                                  */
                                 rolePermission = RolePermission.builder()
                                                 .role(role)
@@ -523,23 +573,75 @@ public class RoleServiceImpl implements RoleService {
                 }
 
                 /*
-                 * Any existing permission that was NOT selected
-                 * should become inactive.
+                 * ---------------------------------------------------------
+                 * 9. Deactivate permissions that were not selected
+                 * ---------------------------------------------------------
                  */
                 for (RolePermission rolePermission : existing) {
 
-                        UUID permissionId = rolePermission.getPermission().getId();
+                        UUID permissionId = rolePermission
+                                        .getPermission()
+                                        .getId();
 
-                        if (!selectedPermissionIds.contains(permissionId)) {
+                        if (!selectedPermissionIds
+                                        .contains(permissionId)) {
+
                                 rolePermission.setIsActive('N');
                         }
                 }
 
                 /*
-                 * Save everything together.
+                 * ---------------------------------------------------------
+                 * 10. Save role permissions
+                 * ---------------------------------------------------------
                  */
                 rolePermissionRepository.saveAll(existing);
 
-                return getRolePermissions(dao.getRoleId());
+                /*
+                 * ---------------------------------------------------------
+                 * 11. Notify users AFTER transaction commits
+                 *
+                 * This is important because Angular will immediately
+                 * call /auth/me after receiving the SSE event.
+                 *
+                 * We don't want /auth/me to execute before the DB
+                 * transaction has committed.
+                 * ---------------------------------------------------------
+                 */
+                TransactionSynchronizationManager
+                                .registerSynchronization(
+                                                new TransactionSynchronization() {
+
+                                                        @Override
+                                                        public void afterCommit() {
+
+                                                                System.out.println(
+                                                                                "Role permission transaction "
+                                                                                                + "committed.");
+
+                                                                System.out.println(
+                                                                                "Sending permission change "
+                                                                                                + "events to "
+                                                                                                + affectedUserIds.size()
+                                                                                                + " user(s).");
+
+                                                                for (UUID userId : affectedUserIds) {
+                                                                        System.out.println(
+                                                                                        "Sending permission change event to user: "
+                                                                                                        + userId);
+                                                                        sseService
+                                                                                        .sendPermissionChanged(
+                                                                                                        userId);
+                                                                }
+                                                        }
+                                                });
+
+                /*
+                 * ---------------------------------------------------------
+                 * 12. Return updated role permissions
+                 * ---------------------------------------------------------
+                 */
+                return getRolePermissions(
+                                dao.getRoleId());
         }
 }

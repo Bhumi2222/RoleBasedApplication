@@ -1,5 +1,6 @@
 package com.example.demo.dao;
 
+import java.util.Set;
 import java.util.UUID;
 
 import lombok.AllArgsConstructor;
@@ -24,4 +25,6 @@ public class UserDao {
     private UUID roleId;
 
     private String roleName;
+
+    private Set<PermissionDao> permissions;
 }
