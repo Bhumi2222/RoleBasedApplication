@@ -42,43 +42,44 @@ public class JwtAuthenticationFilter
                 String token = null;
 
                 if (authHeader != null &&
-                                authHeader.startsWith("Bearer ")) {
+                authHeader.startsWith("Bearer ")) {
 
-                        token = authHeader.substring(7);
+                token = authHeader.substring(7);
 
-                        try {
-                                username = jwtService.extractUsername(token);
-                        } catch (Exception e) {
-                                // Invalid token
-                        }
+                try {
+                username = jwtService.extractUsername(token);
+                } catch (Exception e) {
+                // Invalid token
+                }
                 }
 
                 if (username != null &&
-                                SecurityContextHolder
-                                                .getContext()
-                                                .getAuthentication() == null) {
+                SecurityContextHolder
+                .getContext()
+                .getAuthentication() == null) {
 
-                        UserDetails userDetails = userDetailsService
-                                        .loadUserByUsername(username);
+                UserDetails userDetails = userDetailsService
+                .loadUserByUsername(username);
 
-                        if (jwtService.isTokenValid(
-                                        token,
-                                        userDetails)) {
+                if (jwtService.isTokenValid(
+                token,
+                userDetails)) {
 
-                                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                                                userDetails,
-                                                null,
-                                                userDetails.getAuthorities());
+                UsernamePasswordAuthenticationToken authentication = new
+                UsernamePasswordAuthenticationToken(
+                userDetails,
+                null,
+                userDetails.getAuthorities());
 
-                                authentication.setDetails(
-                                                new WebAuthenticationDetailsSource()
-                                                                .buildDetails(request));
+                authentication.setDetails(
+                new WebAuthenticationDetailsSource()
+                .buildDetails(request));
 
-                                SecurityContextHolder
-                                                .getContext()
-                                                .setAuthentication(
-                                                                authentication);
-                        }
+                SecurityContextHolder
+                .getContext()
+                .setAuthentication(
+                authentication);
+                }
                 }
 
                 filterChain.doFilter(

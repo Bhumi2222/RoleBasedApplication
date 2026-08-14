@@ -1,10 +1,12 @@
 package com.example.demo.repository;
 
+import com.example.demo.Entity.Permission;
 import com.example.demo.Entity.RolePermission;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.security.access.method.P;
 
 import java.util.List;
 import java.util.Set;
@@ -39,6 +41,16 @@ public interface RolePermissionRepository extends JpaRepository<RolePermission, 
             AND rp.permission.isActive = 'Y'
       """)
   Set<String> findPermissionCodesByRoleId(
+      @Param("roleId") UUID roleId);
+
+      @Query("""
+          SELECT rp.permission
+          FROM RolePermission rp
+          WHERE rp.role.id = :roleId
+            AND rp.isActive = 'Y'
+            AND rp.permission.isActive = 'Y'
+      """)
+  Set<Permission> findPermissionIdsByRoleId(
       @Param("roleId") UUID roleId);
 
 }
